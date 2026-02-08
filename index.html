@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-CheckIn UAS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        
+        /* CABECERA INSTITUCIONAL */
+        .header-logos { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 450px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; }
+        .logo-aguila { height: 65px; width: auto; } /* 1.png */
+        .logo-vision { height: 50px; width: auto; } /* 2.jpg */
+        
+        /* TARJETA CENTRAL */
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,39,76,0.1); width: 100%; max-width: 380px; border-top: 5px solid #00274c; }
+        
+        h2 { color: #00274c; margin: 0 0 20px 0; font-weight: 800; }
+        
+        /* INPUTS */
+        input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; }
+        input:focus { border-color: #D4AF37; }
+
+        /* ESTADO GPS */
+        .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+
+        /* BOTÓN */
+        button { width: 100%; padding: 15px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-locked { background: #94a3b8; cursor: not-allowed; }
+        .btn-active { background: #25D366; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4); }
+
+        /* PIE DE PÁGINA */
+        .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
+        .logo-esef { height: 55px; width: auto; } /* 3.jpg */
+        .logo-fefyde { height: 40px; width: auto; } /* FEFYDE.png */
+
+        /* TICKET (Oculto al inicio) */
+        #pantallaTicket { display: none; width: 100%; max-width: 380px; }
+        .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; }
+        .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; }
+        .qr-area { margin: 20px auto; display: flex; justify-content: center; }
+        .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+        
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .searching { animation: pulse 1.5s infinite; color: #D4AF37; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="pantallaFormulario">
+        <div class="header-logos">
+            <img src="1.png" alt="UAS" class="logo-aguila">
+            <img src="2.jpg" alt="Visión 2029" class="logo-vision">
+        </div>
+
+        <div class="card">
+            <h2>Bio-CheckIn 🧬</h2>
+            
+            <input type="text" id="nombre" placeholder="Apellidos y Nombre" onkeyup="checkInputs()">
+            <input type="text" id="grupo" placeholder="Grupo (Ej: 3-B)" onkeyup="checkInputs()">
+
+            <div class="status-box" id="gpsBox">
+                <span id="gpsIcon">📡</span>
+                <span id="gpsMsg" class="searching">Sincronizando con el profesor...</span>
+            </div>
+
+            <button id="btnEnviar" class="btn-locked" disabled onclick="procesarAsistencia()">
+                🔒 COMPLETAR DATOS
+            </button>
+        </div>
+
+        <div class="footer-logos">
+            <img src="3.jpg" alt="ESEF" class="logo-esef">
+            <img src="FEFYDE.png" alt="FEFyDE" class="logo-fefyde">
+        </div>
+    </div>
+
+    <div id="pantallaTicket">
+        <div class="ticket">
+            <div class="ticket-header"><h3>PASE DE LISTA OFICIAL</h3></div>
+            <div class="qr-area" id="qrTicket"></div>
+            <div style="color:#15803d; font-weight:bold; margin-bottom:10px;">✅ Asistencia Registrada</div>
+            <div class="ticket-info">
+                <div class="row"><span>Alumno:</span><b id="tNombre">---</b></div>
+                <div class="row"><span>Grupo:</span><b id="tGrupo">---</b></div>
+                <div class="row"><span>Fecha:</span><b id="tFecha">---</b></div>
+                <div class="row"><span>ID:</span><b id="tID" style="color:#D4AF37">---</b></div>
+            </div>
+        </div>
+        <p style="color:#666; font-size:0.8rem; margin-top:15px;">Captura este ticket como comprobante.</p>
+    </div>
+
+<script>
+    // --- ⚠️ TU NÚMERO AQUÍ ---
+    const NUMERO_PROFE = "5216671234567"; // Pon tu cel aquí
+    const RADIO_METROS = 60; 
+
+    // Variables de control
+    let latProfe = null, lonProfe = null, gpsValido = false;
+    const params = new URLSearchParams(window.location.search);
+    latProfe = parseFloat(params.get('lat'));
+    lonProfe = parseFloat(params.get('lon'));
+
+    const btn = document.getElementById('btnEnviar');
+    const msg = document.getElementById('gpsMsg');
+    const box = document.getElementById('gpsBox');
+
+    // Cargar datos guardados si existen
+    window.onload = () => {
+        if(localStorage.getItem("bio_nombre")) document.getElementById("nombre").value = localStorage.getItem("bio_nombre");
+        if(localStorage.getItem("bio_grupo")) document.getElementById("grupo").value = localStorage.getItem("bio_grupo");
+        
+        if(!latProfe) {
+            msg.innerText = "⚠️ ERROR: Escanea el QR del maestro.";
+            msg.classList.remove("searching");
+            box.style.borderLeftColor = "#ef4444";
+        } else {
+            checkInputs();
+        }
+    };
+
+    function checkInputs() {
+        const nombre = document.getElementById("nombre").value;
+        const grupo = document.getElementById("grupo").value;
+        if(nombre.length > 3 && grupo.length > 0 && latProfe) {
+            if(!gpsValido) iniciarGPS();
+        }
+    }
+
+    function iniciarGPS() {
+        if("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
+                if(dist <= RADIO_METROS) {
+                    gpsValido = true;
+                    box.style.borderLeftColor = "#25D366";
+                    box.style.background = "#dcfce7";
+                    msg.innerText = "Ubicación Validada Correctamente";
+                    msg.classList.remove("searching");
+                    msg.style.color = "#15803d";
+                    
+                    btn.disabled = false;
+                    btn.className = "btn-active";
+                    btn.innerHTML = "✅ ENVIAR ASISTENCIA";
+                } else {
+                    gpsValido = false;
+                    msg.innerText = `Fuera del aula (${dist.toFixed(0)}m)`;
+                    msg.classList.remove("searching");
+                    btn.disabled = true;
+                    btn.className = "btn-locked";
+                    btn.innerHTML = "🔒 ACÉRCATE MÁS";
+                }
+            }, null, { enableHighAccuracy: true });
+        }
+    }
+
+    function getDistancia(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function procesarAsistencia() {
+        const nombre = document.getElementById("nombre").value;
+        const grupo = document.getElementById("grupo").value;
+        localStorage.setItem("bio_nombre", nombre);
+        localStorage.setItem("bio_grupo", grupo);
+
+        const ahora = new Date();
+        const fechaTxt = ahora.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+        const horaTxt = ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+
+        // 1. WhatsApp
+        const texto = `*ASISTENCIA BIOESTADÍSTICA* ✅\nAlumno: ${nombre}\nGrupo: ${grupo}\nFecha: ${fechaTxt} - ${horaTxt}`;
+        window.open(`https://wa.me/${NUMERO_PROFE}?text=${encodeURIComponent(texto)}`, '_blank');
+
+        // 2. Generar Ticket
+        document.getElementById("pantallaFormulario").style.display = "none";
+        document.getElementById("pantallaTicket").style.display = "block";
+        
+        document.getElementById("tNombre").innerText = nombre;
+        document.getElementById("tGrupo").innerText = grupo;
+        document.getElementById("tFecha").innerText = `${fechaTxt} - ${horaTxt}`;
+        document.getElementById("tID").innerText = "BIO-" + Math.floor(1000 + Math.random() * 9000);
+
+        new QRCode(document.getElementById("qrTicket"), {
+            text: `VALIDADO|${nombre}|${fechaTxt}|${horaTxt}`,
+            width: 150, height: 150,
+            colorDark : "#00274c",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }
+</script>
+</body>
+</html>

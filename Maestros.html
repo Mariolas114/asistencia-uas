@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Docente - UAS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* --- ESTILOS GENERALES TIPO UAS --- */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f6f9; /* Fondo gris muy suave */
+            color: #333; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+        }
+
+        /* --- CABECERA INSTITUCIONAL --- */
+        .header-bar {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            justify-content: space-between; /* Logos a los extremos */
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #D4AF37; /* Línea Dorada UAS */
+        }
+        
+        .logo-main { height: 70px; width: auto; } /* Águila */
+        .logo-vision { height: 60px; width: auto; } /* Visión 2029 */
+
+        /* --- TARJETA CENTRAL --- */
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,39,76, 0.15); /* Sombra azulada sutil */
+            max-width: 400px; 
+            width: 100%; 
+            border-top: 8px solid #00274c; /* Azul UAS arriba */
+        }
+
+        h1 { 
+            color: #00274c; /* Azul Oficial */
+            margin: 10px 0; 
+            font-size: 1.5rem; 
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+        
+        p { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+
+        /* --- ÁREA DEL QR --- */
+        #qr-container { 
+            background: white; 
+            padding: 15px; 
+            border: 2px dashed #D4AF37; /* Borde punteado dorado */
+            border-radius: 10px; 
+            margin: 20px auto; 
+            display: none; /* Oculto al inicio */
+            width: fit-content; 
+        }
+
+        /* --- BOTÓN --- */
+        .btn { 
+            background: #00274c; /* Azul UAS */
+            color: #fff; 
+            border: none; 
+            padding: 15px 30px; 
+            font-size: 1rem; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            width: 100%; 
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn:hover { background: #003a70; }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        /* --- PIE DE PÁGINA (FACULTAD) --- */
+        .footer-logos {
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            opacity: 0.9;
+        }
+        .logo-esef { height: 55px; width: auto; }
+        .logo-fefyde { height: 40px; width: auto; }
+
+        .info-status { font-size: 0.85rem; color: #00274c; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <img src="1.png" alt="Escudo UAS" class="logo-main">
+        <img src="2.jpg" alt="Visión 2029" class="logo-vision">
+    </div>
+
+    <div class="card">
+        <h1>Generar Clase</h1>
+        <p>Bioestadística Deportiva</p>
+        
+        <button id="btnGenerate" class="btn" onclick="generarPunto()">
+            <span>📍</span> GENERAR UBICACIÓN Y QR
+        </button>
+        
+        <div id="qr-container">
+            <div id="qrcode"></div>
+        </div>
+        
+        <p class="info-status" id="status">Presiona para iniciar el pase de lista.</p>
+    </div>
+
+    <div class="footer-logos">
+        <img src="3.jpg" alt="ESEF" class="logo-esef">
+        <img src="FEFYDE.png" alt="#SoyFEFyDE" class="logo-fefyde">
+    </div>
+
+<script>
+    // ⚠️ IMPORTANTE: PEGA AQUÍ EL LINK DE GITHUB DE TUS ALUMNOS (index.html)
+    const BASE_URL = "https://tu-usuario.github.io/asistencia/index.html"; 
+
+    function generarPunto() {
+        const status = document.getElementById("status");
+        const btn = document.getElementById("btnGenerate");
+        
+        status.innerText = "📡 Obteniendo coordenadas del satélite...";
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
+                // Crear Link Único
+                const linkFinal = `${BASE_URL}?lat=${lat}&lon=${lon}`;
+                
+                // Mostrar QR
+                document.getElementById("qr-container").style.display = "block";
+                document.getElementById("qrcode").innerHTML = ""; 
+                
+                new QRCode(document.getElementById("qrcode"), {
+                    text: linkFinal,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#00274c", // QR en Azul UAS
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+
+                status.innerHTML = "✅ <b>Clase Activa.</b> Coordenadas fijadas.";
+                status.style.color = "#15803d";
+                btn.innerHTML = "🔄 ACTUALIZAR UBICACIÓN";
+                btn.disabled = false;
+                btn.style.opacity = "1";
+
+            }, error => {
+                status.innerText = "❌ Error: Activa el GPS de tu dispositivo.";
+                status.style.color = "#ef4444";
+                btn.disabled = false;
+            }, { enableHighAccuracy: true });
+        } else {
+            status.innerText = "Tu navegador no soporta GPS.";
+        }
+    }
+</script>
+
+</body>
+</html>
