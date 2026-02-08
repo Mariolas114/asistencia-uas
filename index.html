@@ -8,43 +8,37 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
-        /* ESTILOS DE CABECERA */
         .header-logos { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 450px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; }
-        .logo-aguila { height: 65px; width: auto; } /* 1.png */
-        .logo-vision { height: 50px; width: auto; } /* 2.jpg */
+        .logo-aguila { height: 65px; width: auto; } 
+        .logo-vision { height: 50px; width: auto; } 
         
-        /* TARJETA PRINCIPAL */
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,39,76,0.1); width: 100%; max-width: 380px; border-top: 5px solid #00274c; }
         
         h2 { color: #00274c; margin: 0 0 20px 0; font-weight: 800; font-size: 1.5rem; }
         
-        /* INPUTS */
         input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: #D4AF37; }
 
-        /* CAJA DE ESTADO GPS */
         .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; text-align: left; }
 
-        /* BOTÓN */
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-locked { background: #94a3b8; cursor: not-allowed; }
-        .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } /* Azul UAS */
+        .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } 
         .btn-active:hover { background: #003a70; }
 
-        /* PIE DE PÁGINA */
         .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
-        .logo-esef { height: 55px; width: auto; } /* 3.jpg */
-        .logo-fefyde { height: 40px; width: auto; } /* FEFYDE.png */
+        .logo-esef { height: 55px; width: auto; } 
+        .logo-fefyde { height: 40px; width: auto; } 
 
-        /* PANTALLA TICKET (Oculta al inicio) */
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         .qr-area { margin: 20px auto; display: flex; justify-content: center; }
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
         .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .row b { color: #333; }
         
+        .bloqueado-msg { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-top: 10px; display:none; }
+
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
         .searching { animation: pulse 1.5s infinite; color: #D4AF37; font-weight: bold; }
     </style>
@@ -85,8 +79,8 @@
             
             <div class="qr-area" id="qrTicket"></div>
             
-            <div style="color:#15803d; font-weight:bold; margin-bottom:5px;">✅ Asistencia Guardada</div>
-            <div style="font-size:0.8rem; color:#666; margin-bottom:15px;">Datos enviados a la nube</div>
+            <div id="ticketTitulo" style="color:#15803d; font-weight:bold; margin-bottom:5px;">✅ Asistencia Guardada</div>
+            <div style="font-size:0.8rem; color:#666; margin-bottom:15px;">Datos sincronizados</div>
 
             <div class="ticket-info">
                 <div class="row"><span>Alumno:</span><b id="tNombre">---</b></div>
@@ -95,16 +89,20 @@
                 <div class="row"><span>ID:</span><b id="tID" style="color:#D4AF37">---</b></div>
             </div>
         </div>
+        
+        <div id="avisoBloqueo" class="bloqueado-msg">
+            ⏳ Tu dispositivo ya registró asistencia hoy. Podrás registrarte de nuevo en <span id="minutosRestantes"></span> minutos.
+        </div>
+
         <p style="color:#666; font-size:0.8rem; margin-top:15px;">Captura este ticket como tu comprobante.</p>
-        <button onclick="location.reload()" style="background:#64748b; margin-top:10px; font-size:0.9rem; padding:10px;">🔄 Nuevo Registro</button>
     </div>
 
 <script>
-    // --- ⚠️ TU LINK DE GOOGLE APPS SCRIPT ---
+    // --- ⚠️ TU LINK GOOGLE SCRIPT ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAh9umOgf_cpm8x3IC0h-8DEw-xdNjD_PXbbA6MF46FJlyVLrooqWG9ooqoMRn36U7/exec";
     
-    // Configuración GPS (Tolerancia amplia para laptops/tablets)
     const RADIO_METROS = 500; 
+    const TIEMPO_ESPERA = 60; // Minutos que deben esperar para volver a registrar
 
     // Variables internas
     let latProfe = null, lonProfe = null, gpsValido = false;
@@ -116,8 +114,11 @@
     const msg = document.getElementById('gpsMsg');
     const box = document.getElementById('gpsBox');
 
-    // Cargar datos previos
     window.onload = () => {
+        // 1. VERIFICAR SI YA REGISTRÓ ASISTENCIA HOY
+        verificarBloqueo();
+
+        // 2. Cargar datos si no está bloqueado
         if(localStorage.getItem("bio_nombre")) document.getElementById("nombre").value = localStorage.getItem("bio_nombre");
         if(localStorage.getItem("bio_grupo")) document.getElementById("grupo").value = localStorage.getItem("bio_grupo");
         
@@ -130,9 +131,36 @@
         }
     };
 
+    function verificarBloqueo() {
+        const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
+        
+        if (ultimoRegistro) {
+            const ahora = Date.now();
+            const diferenciaMinutos = (ahora - parseInt(ultimoRegistro)) / 1000 / 60;
+            
+            if (diferenciaMinutos < TIEMPO_ESPERA) {
+                // ESTÁ BLOQUEADO: Mostrar ticket anterior directamente
+                const nombreGuardado = localStorage.getItem("bio_nombre");
+                const grupoGuardado = localStorage.getItem("bio_grupo");
+                const fechaGuardada = localStorage.getItem("bio_fecha_ticket");
+                
+                if(nombreGuardado && fechaGuardada) {
+                    generarTicket(nombreGuardado, grupoGuardado, fechaGuardada, "", true); // true = modo vista
+                    
+                    // Mostrar aviso de bloqueo
+                    document.getElementById("avisoBloqueo").style.display = "block";
+                    document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferenciaMinutos);
+                    document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
+                    document.getElementById("ticketTitulo").style.color = "#d97706"; // Naranja
+                }
+            }
+        }
+    }
+
     function checkInputs() {
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
+        // Solo iniciamos GPS si no está bloqueado (aunque la vista ticket lo tapa)
         if(nombre.length > 3 && grupo.length > 0 && latProfe) {
             if(!gpsValido) iniciarGPS();
         }
@@ -144,7 +172,7 @@
                 const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
                 if(dist <= RADIO_METROS) {
                     gpsValido = true;
-                    box.style.borderLeftColor = "#00274c"; // Azul UAS
+                    box.style.borderLeftColor = "#00274c";
                     box.style.background = "#eef2ff";
                     msg.innerText = "Ubicación Validada Correctamente";
                     msg.classList.remove("searching");
@@ -176,22 +204,34 @@
     }
 
     function procesarAsistencia() {
+        // Doble verificación por si hackearon el HTML
+        const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
+        if (ultimoRegistro) {
+            const diff = (Date.now() - parseInt(ultimoRegistro)) / 1000 / 60;
+            if (diff < TIEMPO_ESPERA) {
+                alert("Ya registraste asistencia. Espera " + Math.ceil(TIEMPO_ESPERA - diff) + " minutos.");
+                location.reload();
+                return;
+            }
+        }
+
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
-        
-        localStorage.setItem("bio_nombre", nombre);
-        localStorage.setItem("bio_grupo", grupo);
-
-        // Bloquear botón
-        btn.innerHTML = "⏳ Guardando en la nube...";
-        btn.disabled = true;
-        btn.style.background = "#64748b";
-
         const ahora = new Date();
         const fechaTxt = ahora.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
         const horaTxt = ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        
+        // GUARDAR TIMESTAMP PARA BLOQUEO
+        localStorage.setItem("bio_nombre", nombre);
+        localStorage.setItem("bio_grupo", grupo);
+        localStorage.setItem("bio_ultimo_tiempo", Date.now()); // <--- ESTO ES EL CANDADO
+        localStorage.setItem("bio_fecha_ticket", `${fechaTxt} - ${horaTxt}`);
 
-        // ENVIAR DATOS A GOOGLE SHEETS
+        // Bloquear botón visualmente
+        btn.innerHTML = "⏳ Guardando...";
+        btn.disabled = true;
+
+        // ENVIAR
         const datos = { nombre: nombre, grupo: grupo, hora: horaTxt };
         
         fetch(SCRIPT_URL, {
@@ -201,28 +241,31 @@
             body: JSON.stringify(datos)
         })
         .then(() => {
-            // ÉXITO: MOSTRAR TICKET
-            generarTicket(nombre, grupo, fechaTxt, horaTxt);
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, "", false);
         })
         .catch(error => {
-            console.error('Error:', error);
-            // Aun si falla la red, generamos el ticket para que tengan comprobante
-            alert("Tu internet está lento, pero toma captura del ticket.");
-            generarTicket(nombre, grupo, fechaTxt, horaTxt);
+            alert("Internet lento, pero asistencia guardada localmente.");
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, "", false);
         });
     }
 
-    function generarTicket(nombre, grupo, fecha, hora) {
+    function generarTicket(nombre, grupo, fechaHora, idOpcional, esModoVista) {
         document.getElementById("pantallaFormulario").style.display = "none";
         document.getElementById("pantallaTicket").style.display = "block";
         
         document.getElementById("tNombre").innerText = nombre;
         document.getElementById("tGrupo").innerText = grupo;
-        document.getElementById("tFecha").innerText = `${fecha} - ${hora}`;
-        document.getElementById("tID").innerText = "CLOUD-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById("tFecha").innerText = fechaHora;
+        
+        // Si es modo vista (bloqueado), usamos un ID genérico o recuperado
+        const idTicket = esModoVista ? "RE-PRINT" : "CLOUD-" + Math.floor(1000 + Math.random() * 9000);
+        document.getElementById("tID").innerText = idTicket;
 
+        // Limpiar QR anterior
+        document.getElementById("qrTicket").innerHTML = "";
+        
         new QRCode(document.getElementById("qrTicket"), {
-            text: `VALIDADO|${nombre}|${fecha}|${hora}`,
+            text: `VALIDADO|${nombre}|${fechaHora}`,
             width: 150, height: 150,
             colorDark : "#00274c",
             colorLight : "#ffffff",
