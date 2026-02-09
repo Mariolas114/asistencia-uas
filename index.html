@@ -3,41 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asistencia Dr. MArio Cota</title>
+    <title>Asistencia Dr. Mario Cota</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
+        /* CABECERA */
         .header-logos { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 450px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; }
         .logo-aguila { height: 65px; width: auto; } 
         .logo-vision { height: 50px; width: auto; } 
         
+        /* TARJETA */
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,39,76,0.1); width: 100%; max-width: 380px; border-top: 5px solid #00274c; }
         
-        h2 { color: #00274c; margin: 0 0 20px 0; font-weight: 800; font-size: 1.5rem; }
+        /* TÍTULO PERSONALIZADO */
+        h2 { color: #00274c; margin: 0 0 20px 0; font-weight: 800; font-size: 1.4rem; line-height: 1.3; }
+        .subtitulo-dr { font-size: 1rem; color: #475569; font-weight: 600; display: block; margin-top: 5px; }
+        
+        /* INPUTS Y SELECT */
+        label { font-size: 0.85rem; font-weight: bold; color: #475569; display: block; text-align: left; margin-bottom: 5px; }
+        select { width: 100%; padding: 12px; border: 2px solid #00274c; background: #f8fafc; border-radius: 10px; margin-bottom: 15px; font-weight: bold; color: #00274c; outline: none; font-size: 0.9rem; }
         
         input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: #D4AF37; }
 
+        /* GPS BOX */
         .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; text-align: left; }
 
+        /* BOTONES */
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-locked { background: #94a3b8; cursor: not-allowed; }
         .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } 
         .btn-active:hover { background: #003a70; }
 
+        /* FOOTER */
         .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
         .logo-esef { height: 55px; width: auto; } 
         .logo-fefyde { height: 40px; width: auto; } 
 
+        /* TICKET */
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
-        .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
         .qr-area { margin: 20px auto; display: flex; justify-content: center; }
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
         .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         
-        .bloqueado-msg { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-top: 10px; display:none; }
+        .bloqueado-msg { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-top: 10px; display:none; border: 1px solid #fca5a5; }
 
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
         .searching { animation: pulse 1.5s infinite; color: #D4AF37; font-weight: bold; }
@@ -52,8 +64,18 @@
         </div>
 
         <div class="card">
-            <h2>Asistencia Profesor Mario Cota</h2>
+            <h2>
+                Registro de Asistencia
+                <span class="subtitulo-dr">Dr. Mario Cota</span>
+            </h2>
             
+            <label>Selecciona tu Materia:</label>
+            <select id="materiaSeleccionada" onchange="checkInputs()">
+                <option value="" disabled selected>-- Elige una opción --</option>
+                <option value="LED">BIOESTADÍSTICA (Lic. Educ. Deportiva)</option>
+                <option value="LAFS">ESTADÍSTICA (Lic. Act. Física y Salud)</option>
+            </select>
+
             <input type="text" id="nombre" placeholder="Apellidos y Nombre" onkeyup="checkInputs()">
             <input type="text" id="grupo" placeholder="Grupo (Ej: 3-B)" onkeyup="checkInputs()">
 
@@ -75,7 +97,7 @@
 
     <div id="pantallaTicket">
         <div class="ticket">
-            <div class="ticket-header">Pase de Lista Oficial</div>
+            <div class="ticket-header" id="ticketMateriaHeader">ASISTENCIA</div>
             
             <div class="qr-area" id="qrTicket"></div>
             
@@ -83,26 +105,27 @@
             <div style="font-size:0.8rem; color:#666; margin-bottom:15px;">Datos sincronizados</div>
 
             <div class="ticket-info">
+                <div class="row"><span>Materia:</span><b id="tMateria">---</b></div>
                 <div class="row"><span>Alumno:</span><b id="tNombre">---</b></div>
                 <div class="row"><span>Grupo:</span><b id="tGrupo">---</b></div>
                 <div class="row"><span>Fecha:</span><b id="tFecha">---</b></div>
-                <div class="row"><span>ID:</span><b id="tID" style="color:#D4AF37">---</b></div>
             </div>
         </div>
         
         <div id="avisoBloqueo" class="bloqueado-msg">
-            ⏳ Tu dispositivo ya registró asistencia hoy. Podrás registrarte de nuevo en <span id="minutosRestantes"></span> minutos.
+            ⏳ Ya registraste asistencia hoy. Espera <span id="minutosRestantes"></span> minutos para volver a registrar.
         </div>
 
         <p style="color:#666; font-size:0.8rem; margin-top:15px;">Captura este ticket como tu comprobante.</p>
     </div>
 
 <script>
-    // --- ⚠️ TU LINK GOOGLE SCRIPT ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAh9umOgf_cpm8x3IC0h-8DEw-xdNjD_PXbbA6MF46FJlyVLrooqWG9ooqoMRn36U7/exec";
+    // --- LINK DE EXCEL ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
-    const RADIO_METROS =60; 
-    const TIEMPO_ESPERA = 90; // Minutos que deben esperar para volver a registrar
+    // CONFIGURACIÓN (AQUÍ ESTÁ EL CAMBIO)
+    const RADIO_METROS = 30; // ⚠️ AHORA ESTÁ EN 30 METROS
+    const TIEMPO_ESPERA = 60; // Minutos de bloqueo entre registros
 
     // Variables internas
     let latProfe = null, lonProfe = null, gpsValido = false;
@@ -115,15 +138,14 @@
     const box = document.getElementById('gpsBox');
 
     window.onload = () => {
-        // 1. VERIFICAR SI YA REGISTRÓ ASISTENCIA HOY
-        verificarBloqueo();
-
-        // 2. Cargar datos si no está bloqueado
+        verificarBloqueo(); // Revisar si ya checó
+        
+        // Cargar datos previos
         if(localStorage.getItem("bio_nombre")) document.getElementById("nombre").value = localStorage.getItem("bio_nombre");
         if(localStorage.getItem("bio_grupo")) document.getElementById("grupo").value = localStorage.getItem("bio_grupo");
         
         if(!latProfe) {
-            msg.innerText = "⚠️ ERROR: Debes escanear el QR del maestro.";
+            msg.innerText = "⚠️ ERROR: Escanea el QR del maestro.";
             msg.classList.remove("searching");
             box.style.borderLeftColor = "#ef4444";
         } else {
@@ -133,25 +155,21 @@
 
     function verificarBloqueo() {
         const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
-        
         if (ultimoRegistro) {
-            const ahora = Date.now();
-            const diferenciaMinutos = (ahora - parseInt(ultimoRegistro)) / 1000 / 60;
-            
-            if (diferenciaMinutos < TIEMPO_ESPERA) {
-                // ESTÁ BLOQUEADO: Mostrar ticket anterior directamente
-                const nombreGuardado = localStorage.getItem("bio_nombre");
-                const grupoGuardado = localStorage.getItem("bio_grupo");
-                const fechaGuardada = localStorage.getItem("bio_fecha_ticket");
+            const diferencia = (Date.now() - parseInt(ultimoRegistro)) / 1000 / 60;
+            if (diferencia < TIEMPO_ESPERA) {
+                // Recuperar datos para mostrar ticket antiguo
+                const nombre = localStorage.getItem("bio_nombre");
+                const grupo = localStorage.getItem("bio_grupo");
+                const fecha = localStorage.getItem("bio_fecha_ticket");
+                const materia = localStorage.getItem("bio_materia_nombre");
                 
-                if(nombreGuardado && fechaGuardada) {
-                    generarTicket(nombreGuardado, grupoGuardado, fechaGuardada, "", true); // true = modo vista
-                    
-                    // Mostrar aviso de bloqueo
+                if(nombre && fecha) {
+                    generarTicket(nombre, grupo, fecha, materia || "Clase", true);
                     document.getElementById("avisoBloqueo").style.display = "block";
-                    document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferenciaMinutos);
+                    document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
                     document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
-                    document.getElementById("ticketTitulo").style.color = "#d97706"; // Naranja
+                    document.getElementById("ticketTitulo").style.color = "#d97706";
                 }
             }
         }
@@ -160,8 +178,9 @@
     function checkInputs() {
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
-        // Solo iniciamos GPS si no está bloqueado (aunque la vista ticket lo tapa)
-        if(nombre.length > 3 && grupo.length > 0 && latProfe) {
+        const materia = document.getElementById("materiaSeleccionada").value;
+        
+        if(nombre.length > 3 && grupo.length > 0 && materia !== "" && latProfe) {
             if(!gpsValido) iniciarGPS();
         }
     }
@@ -177,7 +196,6 @@
                     msg.innerText = "Ubicación Validada Correctamente";
                     msg.classList.remove("searching");
                     msg.style.color = "#00274c";
-                    
                     btn.disabled = false;
                     btn.className = "btn-active";
                     btn.innerHTML = "☁️ GUARDAR ASISTENCIA";
@@ -185,7 +203,6 @@
                     gpsValido = false;
                     msg.innerText = `Fuera del rango (${dist.toFixed(0)}m)`;
                     msg.classList.remove("searching");
-                    msg.style.color = "#ef4444";
                     btn.disabled = true;
                     btn.className = "btn-locked";
                     btn.innerHTML = "🔒 ACÉRCATE MÁS";
@@ -204,35 +221,35 @@
     }
 
     function procesarAsistencia() {
-        // Doble verificación por si hackearon el HTML
-        const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
-        if (ultimoRegistro) {
-            const diff = (Date.now() - parseInt(ultimoRegistro)) / 1000 / 60;
-            if (diff < TIEMPO_ESPERA) {
-                alert("Ya registraste asistencia. Espera " + Math.ceil(TIEMPO_ESPERA - diff) + " minutos.");
-                location.reload();
-                return;
-            }
-        }
-
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
+        
+        // Obtener datos de materia
+        const selectMateria = document.getElementById("materiaSeleccionada");
+        const materiaCodigo = selectMateria.value; // LED o LAFS
+        const materiaTexto = selectMateria.options[selectMateria.selectedIndex].text;
+
         const ahora = new Date();
         const fechaTxt = ahora.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
         const horaTxt = ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
         
-        // GUARDAR TIMESTAMP PARA BLOQUEO
+        // Guardar candado
         localStorage.setItem("bio_nombre", nombre);
         localStorage.setItem("bio_grupo", grupo);
-        localStorage.setItem("bio_ultimo_tiempo", Date.now()); // <--- ESTO ES EL CANDADO
+        localStorage.setItem("bio_materia_nombre", materiaTexto);
+        localStorage.setItem("bio_ultimo_tiempo", Date.now());
         localStorage.setItem("bio_fecha_ticket", `${fechaTxt} - ${horaTxt}`);
 
-        // Bloquear botón visualmente
         btn.innerHTML = "⏳ Guardando...";
         btn.disabled = true;
 
-        // ENVIAR
-        const datos = { nombre: nombre, grupo: grupo, hora: horaTxt };
+        // ENVIAR A EXCEL
+        const datos = { 
+            nombre: nombre, 
+            grupo: grupo, 
+            hora: horaTxt, 
+            materia: materiaCodigo // Importante: Envía "LED" o "LAFS"
+        };
         
         fetch(SCRIPT_URL, {
             method: 'POST',
@@ -241,31 +258,28 @@
             body: JSON.stringify(datos)
         })
         .then(() => {
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, "", false);
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto, false);
         })
         .catch(error => {
-            alert("Internet lento, pero asistencia guardada localmente.");
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, "", false);
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto, false);
         });
     }
 
-    function generarTicket(nombre, grupo, fechaHora, idOpcional, esModoVista) {
+    function generarTicket(nombre, grupo, fechaHora, materiaNombre, esModoVista) {
         document.getElementById("pantallaFormulario").style.display = "none";
         document.getElementById("pantallaTicket").style.display = "block";
         
         document.getElementById("tNombre").innerText = nombre;
         document.getElementById("tGrupo").innerText = grupo;
         document.getElementById("tFecha").innerText = fechaHora;
+        document.getElementById("tMateria").innerText = materiaNombre; 
         
-        // Si es modo vista (bloqueado), usamos un ID genérico o recuperado
-        const idTicket = esModoVista ? "RE-PRINT" : "CLOUD-" + Math.floor(1000 + Math.random() * 9000);
-        document.getElementById("tID").innerText = idTicket;
+        // Encabezado del Ticket
+        document.getElementById("ticketMateriaHeader").innerText = materiaNombre;
 
-        // Limpiar QR anterior
         document.getElementById("qrTicket").innerHTML = "";
-        
         new QRCode(document.getElementById("qrTicket"), {
-            text: `VALIDADO|${nombre}|${fechaHora}`,
+            text: `VALIDADO|${materiaNombre}|${nombre}|${fechaHora}`,
             width: 150, height: 150,
             colorDark : "#00274c",
             colorLight : "#ffffff",
@@ -276,8 +290,3 @@
 
 </body>
 </html>
-
-
-
-
-
