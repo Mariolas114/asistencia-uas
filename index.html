@@ -8,40 +8,32 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
-        /* CABECERA */
         .header-logos { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 450px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; }
         .logo-aguila { height: 65px; width: auto; } 
         .logo-vision { height: 50px; width: auto; } 
         
-        /* TARJETA */
         .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,39,76,0.1); width: 100%; max-width: 380px; border-top: 5px solid #00274c; }
         
-        /* TÍTULO PERSONALIZADO */
         h2 { color: #00274c; margin: 0 0 20px 0; font-weight: 800; font-size: 1.4rem; line-height: 1.3; }
         .subtitulo-dr { font-size: 1rem; color: #475569; font-weight: 600; display: block; margin-top: 5px; }
         
-        /* INPUTS Y SELECT */
         label { font-size: 0.85rem; font-weight: bold; color: #475569; display: block; text-align: left; margin-bottom: 5px; }
         select { width: 100%; padding: 12px; border: 2px solid #00274c; background: #f8fafc; border-radius: 10px; margin-bottom: 15px; font-weight: bold; color: #00274c; outline: none; font-size: 0.9rem; }
         
         input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: #D4AF37; }
 
-        /* GPS BOX */
         .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; text-align: left; }
 
-        /* BOTONES */
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-locked { background: #94a3b8; cursor: not-allowed; }
         .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } 
         .btn-active:hover { background: #003a70; }
 
-        /* FOOTER */
         .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
         .logo-esef { height: 55px; width: auto; } 
         .logo-fefyde { height: 40px; width: auto; } 
 
-        /* TICKET */
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
@@ -113,21 +105,19 @@
         </div>
         
         <div id="avisoBloqueo" class="bloqueado-msg">
-            ⏳ Ya registraste asistencia hoy. Espera <span id="minutosRestantes"></span> minutos para volver a registrar.
+            ⏳ Ya registraste asistencia hoy. Espera <span id="minutosRestantes"></span> minutos.
         </div>
-
         <p style="color:#666; font-size:0.8rem; margin-top:15px;">Captura este ticket como tu comprobante.</p>
     </div>
 
 <script>
-    // --- LINK DE EXCEL ---
+    // --- TU EXCEL ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
-    // CONFIGURACIÓN (AQUÍ ESTÁ EL CAMBIO)
-    const RADIO_METROS = 30; // ⚠️ AHORA ESTÁ EN 30 METROS
-    const TIEMPO_ESPERA = 90; // Minutos de bloqueo entre registros
+    // --- CONFIGURACIÓN ACTUALIZADA ---
+    const RADIO_METROS = 100; // ✅ AUMENTADO PARA EVITAR ERRORES EN EL SALÓN
+    const TIEMPO_ESPERA = 60; // Bloqueo de duplicados
 
-    // Variables internas
     let latProfe = null, lonProfe = null, gpsValido = false;
     const params = new URLSearchParams(window.location.search);
     latProfe = parseFloat(params.get('lat'));
@@ -138,9 +128,7 @@
     const box = document.getElementById('gpsBox');
 
     window.onload = () => {
-        verificarBloqueo(); // Revisar si ya checó
-        
-        // Cargar datos previos
+        verificarBloqueo(); 
         if(localStorage.getItem("bio_nombre")) document.getElementById("nombre").value = localStorage.getItem("bio_nombre");
         if(localStorage.getItem("bio_grupo")) document.getElementById("grupo").value = localStorage.getItem("bio_grupo");
         
@@ -158,20 +146,25 @@
         if (ultimoRegistro) {
             const diferencia = (Date.now() - parseInt(ultimoRegistro)) / 1000 / 60;
             if (diferencia < TIEMPO_ESPERA) {
-                // Recuperar datos para mostrar ticket antiguo
-                const nombre = localStorage.getItem("bio_nombre");
-                const grupo = localStorage.getItem("bio_grupo");
-                const fecha = localStorage.getItem("bio_fecha_ticket");
-                const materia = localStorage.getItem("bio_materia_nombre");
-                
-                if(nombre && fecha) {
-                    generarTicket(nombre, grupo, fecha, materia || "Clase", true);
-                    document.getElementById("avisoBloqueo").style.display = "block";
-                    document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
-                    document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
-                    document.getElementById("ticketTitulo").style.color = "#d97706";
-                }
+                mostrarPantallaBloqueo(diferencia);
+                return true; 
             }
+        }
+        return false; 
+    }
+
+    function mostrarPantallaBloqueo(diferencia) {
+        const nombre = localStorage.getItem("bio_nombre");
+        const grupo = localStorage.getItem("bio_grupo");
+        const fecha = localStorage.getItem("bio_fecha_ticket");
+        const materia = localStorage.getItem("bio_materia_nombre");
+        
+        if(nombre && fecha) {
+            generarTicket(nombre, grupo, fecha, materia || "Clase");
+            document.getElementById("avisoBloqueo").style.display = "block";
+            document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
+            document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
+            document.getElementById("ticketTitulo").style.color = "#d97706";
         }
     }
 
@@ -187,13 +180,18 @@
 
     function iniciarGPS() {
         if("geolocation" in navigator) {
+            // Se añaden opciones para mejorar la señal en Android/iPhone
+            const opcionesGPS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+
             navigator.geolocation.watchPosition((pos) => {
                 const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
+                
+                // Muestra la distancia real en pantalla para que el alumno vea qué pasa
                 if(dist <= RADIO_METROS) {
                     gpsValido = true;
                     box.style.borderLeftColor = "#00274c";
                     box.style.background = "#eef2ff";
-                    msg.innerText = "Ubicación Validada Correctamente";
+                    msg.innerText = "Ubicación Validada (A " + dist.toFixed(0) + "m)";
                     msg.classList.remove("searching");
                     msg.style.color = "#00274c";
                     btn.disabled = false;
@@ -207,7 +205,13 @@
                     btn.className = "btn-locked";
                     btn.innerHTML = "🔒 ACÉRCATE MÁS";
                 }
-            }, null, { enableHighAccuracy: true });
+            }, (err) => {
+                // Si falla el GPS, le avisa al alumno
+                msg.innerText = "⚠️ Error GPS: Activa tu ubicación";
+                console.warn("Error GPS", err);
+            }, opcionesGPS);
+        } else {
+            msg.innerText = "Tu celular no soporta GPS";
         }
     }
 
@@ -221,34 +225,36 @@
     }
 
     function procesarAsistencia() {
+        if (verificarBloqueo()) {
+            alert("⚠️ ¡ERROR! Ya registraste asistencia hoy.");
+            location.reload(); 
+            return;
+        }
+
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
-        
-        // Obtener datos de materia
         const selectMateria = document.getElementById("materiaSeleccionada");
-        const materiaCodigo = selectMateria.value; // LED o LAFS
+        const materiaCodigo = selectMateria.value;
         const materiaTexto = selectMateria.options[selectMateria.selectedIndex].text;
 
         const ahora = new Date();
         const fechaTxt = ahora.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
         const horaTxt = ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
         
-        // Guardar candado
         localStorage.setItem("bio_nombre", nombre);
         localStorage.setItem("bio_grupo", grupo);
         localStorage.setItem("bio_materia_nombre", materiaTexto);
-        localStorage.setItem("bio_ultimo_tiempo", Date.now());
+        localStorage.setItem("bio_ultimo_tiempo", Date.now()); 
         localStorage.setItem("bio_fecha_ticket", `${fechaTxt} - ${horaTxt}`);
 
         btn.innerHTML = "⏳ Guardando...";
         btn.disabled = true;
 
-        // ENVIAR A EXCEL
         const datos = { 
             nombre: nombre, 
             grupo: grupo, 
             hora: horaTxt, 
-            materia: materiaCodigo // Importante: Envía "LED" o "LAFS"
+            materia: materiaCodigo 
         };
         
         fetch(SCRIPT_URL, {
@@ -258,14 +264,14 @@
             body: JSON.stringify(datos)
         })
         .then(() => {
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto, false);
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto);
         })
         .catch(error => {
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto, false);
+            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto);
         });
     }
 
-    function generarTicket(nombre, grupo, fechaHora, materiaNombre, esModoVista) {
+    function generarTicket(nombre, grupo, fechaHora, materiaNombre) {
         document.getElementById("pantallaFormulario").style.display = "none";
         document.getElementById("pantallaTicket").style.display = "block";
         
@@ -273,8 +279,6 @@
         document.getElementById("tGrupo").innerText = grupo;
         document.getElementById("tFecha").innerText = fechaHora;
         document.getElementById("tMateria").innerText = materiaNombre; 
-        
-        // Encabezado del Ticket
         document.getElementById("ticketMateriaHeader").innerText = materiaNombre;
 
         document.getElementById("qrTicket").innerHTML = "";
@@ -290,5 +294,3 @@
 
 </body>
 </html>
-
-
