@@ -33,7 +33,7 @@
         .btn-active:hover { background: #003a70; }
 
         /* BOTÓN CLASSROOM (NUEVO) */
-        .btn-classroom { background: #0f9d58; margin-top: 15px; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); }
+        .btn-classroom { background: #0f9d58; margin-top: 15px; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); width: 100%; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .btn-classroom:hover { background: #0b8043; }
 
         .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
@@ -45,8 +45,8 @@
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
         
-        /* QR AREA - CORREGIDO PARA QUE SE VEA SIEMPRE */
-        .qr-area { margin: 20px auto; display: flex; justify-content: center; padding: 10px; background: white; }
+        /* QR AREA - CORREGIDO */
+        .qr-area { margin: 15px auto; display: flex; justify-content: center; align-items: center; padding: 10px; background: white; min-height: 160px; }
         
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
         .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
@@ -129,10 +129,9 @@
     // --- TU EXCEL ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
-    // --- CONFIGURACIÓN ACTUALIZADA ---
-    // Usamos 150m para ser tolerantes con los celulares "malos" pero seguros contra los de casa.
-    const RADIO_METROS = 150; 
-    const TIEMPO_ESPERA = 60; // 60 Minutos de bloqueo
+    // --- CONFIGURACIÓN ---
+    const RADIO_METROS = 150; // 150m (Tolerancia paredes/techo)
+    const TIEMPO_ESPERA = 60; // Bloqueo de duplicados
 
     let latProfe = null, lonProfe = null, gpsValido = false;
     const params = new URLSearchParams(window.location.search);
@@ -194,25 +193,21 @@
         }
     }
 
-    // --- NUEVA LÓGICA DE GPS "HÍBRIDO" ---
+    // --- GPS HÍBRIDO (SATÉLITE + RED) ---
     function iniciarGPS() {
         if("geolocation" in navigator) {
             
-            // INTENTO 1: ALTA PRECISIÓN (SATÉLITE)
-            const opcionesAlta = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+            // Opciones: Intentar alta precisión, pero aceptar baja si es necesario
+            const opciones = { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 };
             
-            // INTENTO 2: BAJA PRECISIÓN (WIFI/ANTENAS) - Para los cels que fallan
-            const opcionesBaja = { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 };
-
-            // Primero probamos alta precisión
             navigator.geolocation.watchPosition(exitoGPS, (err) => {
-                console.warn("Fallo GPS Alta Precisión, intentando Baja...", err);
-                // Si falla, intentamos modo compatible
-                navigator.geolocation.watchPosition(exitoGPS, errorGPS, opcionesBaja);
-            }, opcionesAlta);
+                // SI FALLA ALTA PRECISIÓN, INTENTAMOS BAJA (MODO RESCATE)
+                console.warn("Fallo GPS preciso, intentando modo compatible...");
+                navigator.geolocation.watchPosition(exitoGPS, errorGPS, { enableHighAccuracy: false, timeout: 15000 });
+            }, opciones);
 
         } else {
-            msg.innerText = "Tu celular no soporta Geolocalización.";
+            msg.innerText = "Tu celular no soporta GPS.";
         }
     }
 
@@ -223,7 +218,7 @@
             gpsValido = true;
             box.style.borderLeftColor = "#00274c";
             box.style.background = "#eef2ff";
-            msg.innerText = "Ubicación Validada Correctamente";
+            msg.innerText = "Ubicación Validada (A " + dist.toFixed(0) + "m)";
             msg.classList.remove("searching");
             msg.style.color = "#00274c";
             btn.disabled = false;
@@ -240,12 +235,9 @@
     }
 
     function errorGPS(err) {
-        // Mensajes inteligentes para el alumno
-        if(err.code === 1) msg.innerText = "🚫 Permiso denegado. Actívalo en el candado 🔒 arriba.";
-        else if(err.code === 2) msg.innerText = "📡 Sin señal GPS. Abre Google Maps primero.";
-        else if(err.code === 3) msg.innerText = "⏱️ Tiempo agotado. Recarga la página.";
-        else msg.innerText = "⚠️ Error desconocido de ubicación.";
-        
+        if(err.code === 1) msg.innerText = "🚫 Permiso denegado. Toca el candado 🔒 arriba.";
+        else if(err.code === 2) msg.innerText = "📡 Sin señal. Abre Google Maps 10 segundos.";
+        else msg.innerText = "⚠️ Error GPS. Reintenta.";
         box.style.borderLeftColor = "#ef4444";
     }
 
@@ -284,55 +276,42 @@
         btn.innerHTML = "⏳ Guardando...";
         btn.disabled = true;
 
-        const datos = { 
-            nombre: nombre, 
-            grupo: grupo, 
-            hora: horaTxt, 
-            materia: materiaCodigo 
-        };
+        const datos = { nombre: nombre, grupo: grupo, hora: horaTxt, materia: materiaCodigo };
         
         fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
+            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
         })
-        .then(() => {
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto);
-        })
-        .catch(error => {
-            generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto);
-        });
+        .then(() => { generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto); })
+        .catch(error => { generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto); });
     }
 
     function generarTicket(nombre, grupo, fechaHora, materiaNombre) {
+        // 1. Mostrar pantalla de ticket
         document.getElementById("pantallaFormulario").style.display = "none";
         document.getElementById("pantallaTicket").style.display = "block";
         
+        // 2. Llenar datos
         document.getElementById("tNombre").innerText = nombre;
         document.getElementById("tGrupo").innerText = grupo;
         document.getElementById("tFecha").innerText = fechaHora;
         document.getElementById("tMateria").innerText = materiaNombre; 
         document.getElementById("ticketMateriaHeader").innerText = materiaNombre;
 
-        // Limpiar y Generar QR
+        // 3. GENERAR QR (CON RETRASO DE SEGURIDAD PARA QUE NO SALGA BLANCO)
         const qrContainer = document.getElementById("qrTicket");
-        qrContainer.innerHTML = "";
+        qrContainer.innerHTML = ""; // Limpiar anterior
         
-        // Esperamos un microsegundo para que el div sea visible antes de pintar
         setTimeout(() => {
             new QRCode(qrContainer, {
                 text: `UAS|${materiaNombre}|${nombre}|${fechaHora}`,
-                width: 160, height: 160,
-                colorDark : "#00274c",
-                colorLight : "#ffffff",
+                width: 150, height: 150,
+                colorDark : "#00274c", colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
-        }, 100);
+        }, 300); // 300ms de espera para asegurar que el div ya existe
     }
 
     function abrirClassroom() {
-        // Enlace universal a Classroom
         window.open("https://classroom.google.com/", "_blank");
     }
 </script>
