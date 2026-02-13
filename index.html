@@ -8,6 +8,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
+        /* HEADER */
         .header-logos { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 450px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; }
         .logo-aguila { height: 65px; width: auto; } 
         .logo-vision { height: 50px; width: auto; } 
@@ -23,6 +24,7 @@
         input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: #D4AF37; }
 
+        /* GPS BOX */
         .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; text-align: left; }
 
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -30,14 +32,22 @@
         .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } 
         .btn-active:hover { background: #003a70; }
 
+        /* BOTÓN CLASSROOM (NUEVO) */
+        .btn-classroom { background: #0f9d58; margin-top: 15px; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); }
+        .btn-classroom:hover { background: #0b8043; }
+
         .footer-logos { margin-top: 30px; display: flex; align-items: center; justify-content: center; gap: 15px; opacity: 0.9; }
         .logo-esef { height: 55px; width: auto; } 
         .logo-fefyde { height: 40px; width: auto; } 
 
+        /* TICKET */
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
-        .qr-area { margin: 20px auto; display: flex; justify-content: center; }
+        
+        /* QR AREA - CORREGIDO PARA QUE SE VEA SIEMPRE */
+        .qr-area { margin: 20px auto; display: flex; justify-content: center; padding: 10px; background: white; }
+        
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
         .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         
@@ -107,7 +117,12 @@
         <div id="avisoBloqueo" class="bloqueado-msg">
             ⏳ Ya registraste asistencia hoy. Espera <span id="minutosRestantes"></span> minutos.
         </div>
-        <p style="color:#666; font-size:0.8rem; margin-top:15px;">Captura este ticket como tu comprobante.</p>
+        
+        <p style="color:#666; font-size:0.8rem; margin-top:10px;">Toma captura de este ticket</p>
+
+        <button class="btn-classroom" onclick="abrirClassroom()">
+            📂 SUBIR A CLASSROOM
+        </button>
     </div>
 
 <script>
@@ -115,8 +130,9 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
     // --- CONFIGURACIÓN ACTUALIZADA ---
-    const RADIO_METROS = 100; // ✅ AUMENTADO PARA EVITAR ERRORES EN EL SALÓN
-    const TIEMPO_ESPERA = 60; // Bloqueo de duplicados
+    // Usamos 150m para ser tolerantes con los celulares "malos" pero seguros contra los de casa.
+    const RADIO_METROS = 150; 
+    const TIEMPO_ESPERA = 60; // 60 Minutos de bloqueo
 
     let latProfe = null, lonProfe = null, gpsValido = false;
     const params = new URLSearchParams(window.location.search);
@@ -178,41 +194,59 @@
         }
     }
 
+    // --- NUEVA LÓGICA DE GPS "HÍBRIDO" ---
     function iniciarGPS() {
         if("geolocation" in navigator) {
-            // Se añaden opciones para mejorar la señal en Android/iPhone
-            const opcionesGPS = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+            
+            // INTENTO 1: ALTA PRECISIÓN (SATÉLITE)
+            const opcionesAlta = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+            
+            // INTENTO 2: BAJA PRECISIÓN (WIFI/ANTENAS) - Para los cels que fallan
+            const opcionesBaja = { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 };
 
-            navigator.geolocation.watchPosition((pos) => {
-                const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
-                
-                // Muestra la distancia real en pantalla para que el alumno vea qué pasa
-                if(dist <= RADIO_METROS) {
-                    gpsValido = true;
-                    box.style.borderLeftColor = "#00274c";
-                    box.style.background = "#eef2ff";
-                    msg.innerText = "Ubicación Validada (A " + dist.toFixed(0) + "m)";
-                    msg.classList.remove("searching");
-                    msg.style.color = "#00274c";
-                    btn.disabled = false;
-                    btn.className = "btn-active";
-                    btn.innerHTML = "☁️ GUARDAR ASISTENCIA";
-                } else {
-                    gpsValido = false;
-                    msg.innerText = `Fuera del rango (${dist.toFixed(0)}m)`;
-                    msg.classList.remove("searching");
-                    btn.disabled = true;
-                    btn.className = "btn-locked";
-                    btn.innerHTML = "🔒 ACÉRCATE MÁS";
-                }
-            }, (err) => {
-                // Si falla el GPS, le avisa al alumno
-                msg.innerText = "⚠️ Error GPS: Activa tu ubicación";
-                console.warn("Error GPS", err);
-            }, opcionesGPS);
+            // Primero probamos alta precisión
+            navigator.geolocation.watchPosition(exitoGPS, (err) => {
+                console.warn("Fallo GPS Alta Precisión, intentando Baja...", err);
+                // Si falla, intentamos modo compatible
+                navigator.geolocation.watchPosition(exitoGPS, errorGPS, opcionesBaja);
+            }, opcionesAlta);
+
         } else {
-            msg.innerText = "Tu celular no soporta GPS";
+            msg.innerText = "Tu celular no soporta Geolocalización.";
         }
+    }
+
+    function exitoGPS(pos) {
+        const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
+        
+        if(dist <= RADIO_METROS) {
+            gpsValido = true;
+            box.style.borderLeftColor = "#00274c";
+            box.style.background = "#eef2ff";
+            msg.innerText = "Ubicación Validada Correctamente";
+            msg.classList.remove("searching");
+            msg.style.color = "#00274c";
+            btn.disabled = false;
+            btn.className = "btn-active";
+            btn.innerHTML = "☁️ GUARDAR ASISTENCIA";
+        } else {
+            gpsValido = false;
+            msg.innerText = `Fuera del rango (${dist.toFixed(0)}m). Acércate.`;
+            msg.classList.remove("searching");
+            btn.disabled = true;
+            btn.className = "btn-locked";
+            btn.innerHTML = "🔒 ACÉRCATE MÁS";
+        }
+    }
+
+    function errorGPS(err) {
+        // Mensajes inteligentes para el alumno
+        if(err.code === 1) msg.innerText = "🚫 Permiso denegado. Actívalo en el candado 🔒 arriba.";
+        else if(err.code === 2) msg.innerText = "📡 Sin señal GPS. Abre Google Maps primero.";
+        else if(err.code === 3) msg.innerText = "⏱️ Tiempo agotado. Recarga la página.";
+        else msg.innerText = "⚠️ Error desconocido de ubicación.";
+        
+        box.style.borderLeftColor = "#ef4444";
     }
 
     function getDistancia(lat1, lon1, lat2, lon2) {
@@ -281,14 +315,25 @@
         document.getElementById("tMateria").innerText = materiaNombre; 
         document.getElementById("ticketMateriaHeader").innerText = materiaNombre;
 
-        document.getElementById("qrTicket").innerHTML = "";
-        new QRCode(document.getElementById("qrTicket"), {
-            text: `VALIDADO|${materiaNombre}|${nombre}|${fechaHora}`,
-            width: 150, height: 150,
-            colorDark : "#00274c",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
+        // Limpiar y Generar QR
+        const qrContainer = document.getElementById("qrTicket");
+        qrContainer.innerHTML = "";
+        
+        // Esperamos un microsegundo para que el div sea visible antes de pintar
+        setTimeout(() => {
+            new QRCode(qrContainer, {
+                text: `UAS|${materiaNombre}|${nombre}|${fechaHora}`,
+                width: 160, height: 160,
+                colorDark : "#00274c",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }, 100);
+    }
+
+    function abrirClassroom() {
+        // Enlace universal a Classroom
+        window.open("https://classroom.google.com/", "_blank");
     }
 </script>
 
