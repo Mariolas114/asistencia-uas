@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistencia Dr. Mario Cota</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
@@ -24,7 +23,6 @@
         input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; box-sizing: border-box; outline: none; font-size: 16px; transition: 0.3s; }
         input:focus { border-color: #D4AF37; }
 
-        /* GPS BOX */
         .status-box { padding: 12px; background: #f1f5f9; border-radius: 10px; border-left: 5px solid #cbd5e1; font-size: 0.9rem; color: #475569; display: flex; align-items: center; gap: 10px; margin-bottom: 15px; text-align: left; }
 
         button { width: 100%; padding: 16px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; display: flex; justify-content: center; align-items: center; gap: 8px; }
@@ -32,7 +30,6 @@
         .btn-active { background: #00274c; box-shadow: 0 4px 15px rgba(0, 39, 76, 0.4); } 
         .btn-active:hover { background: #003a70; }
 
-        /* BOTÓN CLASSROOM (NUEVO) */
         .btn-classroom { background: #0f9d58; margin-top: 15px; box-shadow: 0 4px 10px rgba(15, 157, 88, 0.3); width: 100%; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
         .btn-classroom:hover { background: #0b8043; }
 
@@ -40,12 +37,10 @@
         .logo-esef { height: 55px; width: auto; } 
         .logo-fefyde { height: 40px; width: auto; } 
 
-        /* TICKET */
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; position: relative; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
         
-        /* QR AREA - CORREGIDO */
         .qr-area { margin: 15px auto; display: flex; justify-content: center; align-items: center; padding: 10px; background: white; min-height: 160px; }
         
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
@@ -61,8 +56,8 @@
 
     <div id="pantallaFormulario">
         <div class="header-logos">
-            <img src="1.png" alt="UAS" class="logo-aguila">
-            <img src="2.jpg" alt="Visión 2029" class="logo-vision">
+            <img src="1.png" alt="UAS" class="logo-aguila" loading="lazy">
+            <img src="2.jpg" alt="Visión 2029" class="logo-vision" loading="lazy">
         </div>
 
         <div class="card">
@@ -83,7 +78,7 @@
 
             <div class="status-box" id="gpsBox">
                 <span id="gpsIcon">📡</span>
-                <span id="gpsMsg" class="searching">Sincronizando con el profesor...</span>
+                <span id="gpsMsg" class="searching">Esperando datos...</span>
             </div>
 
             <button id="btnEnviar" class="btn-locked" disabled onclick="procesarAsistencia()">
@@ -92,15 +87,14 @@
         </div>
 
         <div class="footer-logos">
-            <img src="3.jpg" alt="ESEF" class="logo-esef">
-            <img src="FEFYDE.png" alt="FEFyDE" class="logo-fefyde">
+            <img src="3.jpg" alt="ESEF" class="logo-esef" loading="lazy">
+            <img src="FEFYDE.png" alt="FEFyDE" class="logo-fefyde" loading="lazy">
         </div>
     </div>
 
     <div id="pantallaTicket">
         <div class="ticket">
             <div class="ticket-header" id="ticketMateriaHeader">ASISTENCIA</div>
-            
             <div class="qr-area" id="qrTicket"></div>
             
             <div id="ticketTitulo" style="color:#15803d; font-weight:bold; margin-bottom:5px;">✅ Asistencia Guardada</div>
@@ -119,19 +113,15 @@
         </div>
         
         <p style="color:#666; font-size:0.8rem; margin-top:10px;">Toma captura de este ticket</p>
-
-        <button class="btn-classroom" onclick="abrirClassroom()">
-            📂 SUBIR A CLASSROOM
-        </button>
+        <button class="btn-classroom" onclick="abrirClassroom()">📂 SUBIR A CLASSROOM</button>
     </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+
 <script>
-    // --- TU EXCEL ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
-    
-    // --- CONFIGURACIÓN ---
-    const RADIO_METROS = 150; // 150m (Tolerancia paredes/techo)
-    const TIEMPO_ESPERA = 60; // Bloqueo de duplicados
+    const RADIO_METROS = 150; 
+    const TIEMPO_ESPERA = 60; 
 
     let latProfe = null, lonProfe = null, gpsValido = false;
     const params = new URLSearchParams(window.location.search);
@@ -142,8 +132,10 @@
     const msg = document.getElementById('gpsMsg');
     const box = document.getElementById('gpsBox');
 
-    window.onload = () => {
+    // Carga inicial optimizada
+    window.addEventListener('DOMContentLoaded', () => {
         verificarBloqueo(); 
+        
         if(localStorage.getItem("bio_nombre")) document.getElementById("nombre").value = localStorage.getItem("bio_nombre");
         if(localStorage.getItem("bio_grupo")) document.getElementById("grupo").value = localStorage.getItem("bio_grupo");
         
@@ -152,9 +144,10 @@
             msg.classList.remove("searching");
             box.style.borderLeftColor = "#ef4444";
         } else {
-            checkInputs();
+            msg.innerText = "Sincronizando con el profesor...";
+            checkInputs(); // Inicia GPS solo si ya hay datos
         }
-    };
+    });
 
     function verificarBloqueo() {
         const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
@@ -175,7 +168,11 @@
         const materia = localStorage.getItem("bio_materia_nombre");
         
         if(nombre && fecha) {
-            generarTicket(nombre, grupo, fecha, materia || "Clase");
+            // Pequeño retraso para asegurar que la librería QR cargó
+            setTimeout(() => {
+                generarTicket(nombre, grupo, fecha, materia || "Clase");
+            }, 500);
+            
             document.getElementById("avisoBloqueo").style.display = "block";
             document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
             document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
@@ -193,19 +190,14 @@
         }
     }
 
-    // --- GPS HÍBRIDO (SATÉLITE + RED) ---
     function iniciarGPS() {
         if("geolocation" in navigator) {
-            
-            // Opciones: Intentar alta precisión, pero aceptar baja si es necesario
             const opciones = { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 };
             
             navigator.geolocation.watchPosition(exitoGPS, (err) => {
-                // SI FALLA ALTA PRECISIÓN, INTENTAMOS BAJA (MODO RESCATE)
-                console.warn("Fallo GPS preciso, intentando modo compatible...");
+                console.warn("Fallo GPS preciso, cambiando modo...");
                 navigator.geolocation.watchPosition(exitoGPS, errorGPS, { enableHighAccuracy: false, timeout: 15000 });
             }, opciones);
-
         } else {
             msg.innerText = "Tu celular no soporta GPS.";
         }
@@ -213,7 +205,6 @@
 
     function exitoGPS(pos) {
         const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
-        
         if(dist <= RADIO_METROS) {
             gpsValido = true;
             box.style.borderLeftColor = "#00274c";
@@ -236,7 +227,7 @@
 
     function errorGPS(err) {
         if(err.code === 1) msg.innerText = "🚫 Permiso denegado. Toca el candado 🔒 arriba.";
-        else if(err.code === 2) msg.innerText = "📡 Sin señal. Abre Google Maps 10 segundos.";
+        else if(err.code === 2) msg.innerText = "📡 Sin señal. Abre Google Maps.";
         else msg.innerText = "⚠️ Error GPS. Reintenta.";
         box.style.borderLeftColor = "#ef4444";
     }
@@ -251,11 +242,7 @@
     }
 
     function procesarAsistencia() {
-        if (verificarBloqueo()) {
-            alert("⚠️ ¡ERROR! Ya registraste asistencia hoy.");
-            location.reload(); 
-            return;
-        }
+        if (verificarBloqueo()) { alert("⚠️ Ya registraste asistencia hoy."); location.reload(); return; }
 
         const nombre = document.getElementById("nombre").value;
         const grupo = document.getElementById("grupo").value;
@@ -278,42 +265,40 @@
 
         const datos = { nombre: nombre, grupo: grupo, hora: horaTxt, materia: materiaCodigo };
         
-        fetch(SCRIPT_URL, {
-            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
-        })
+        fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos) })
         .then(() => { generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto); })
         .catch(error => { generarTicket(nombre, grupo, `${fechaTxt} - ${horaTxt}`, materiaTexto); });
     }
 
     function generarTicket(nombre, grupo, fechaHora, materiaNombre) {
-        // 1. Mostrar pantalla de ticket
         document.getElementById("pantallaFormulario").style.display = "none";
         document.getElementById("pantallaTicket").style.display = "block";
-        
-        // 2. Llenar datos
         document.getElementById("tNombre").innerText = nombre;
         document.getElementById("tGrupo").innerText = grupo;
         document.getElementById("tFecha").innerText = fechaHora;
         document.getElementById("tMateria").innerText = materiaNombre; 
         document.getElementById("ticketMateriaHeader").innerText = materiaNombre;
 
-        // 3. GENERAR QR (CON RETRASO DE SEGURIDAD PARA QUE NO SALGA BLANCO)
         const qrContainer = document.getElementById("qrTicket");
-        qrContainer.innerHTML = ""; // Limpiar anterior
+        qrContainer.innerHTML = ""; 
         
+        // Espera de seguridad para asegurar que la librería cargó
         setTimeout(() => {
-            new QRCode(qrContainer, {
-                text: `UAS|${materiaNombre}|${nombre}|${fechaHora}`,
-                width: 150, height: 150,
-                colorDark : "#00274c", colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }, 300); // 300ms de espera para asegurar que el div ya existe
+            if(typeof QRCode !== 'undefined') {
+                new QRCode(qrContainer, {
+                    text: `UAS|${materiaNombre}|${nombre}|${fechaHora}`,
+                    width: 150, height: 150,
+                    colorDark : "#00274c", colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            } else {
+                qrContainer.innerText = "QR Cargando...";
+                setTimeout(() => location.reload(), 1000); // Reintenta si falló la librería
+            }
+        }, 300); 
     }
 
-    function abrirClassroom() {
-        window.open("https://classroom.google.com/", "_blank");
-    }
+    function abrirClassroom() { window.open("https://classroom.google.com/", "_blank"); }
 </script>
 
 </body>
