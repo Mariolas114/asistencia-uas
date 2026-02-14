@@ -67,7 +67,7 @@
 
             <div class="status-box" id="gpsBox">
                 <span id="gpsIcon">📡</span>
-                <span id="gpsMsg">Esperando ubicación...</span>
+                <span id="gpsMsg">Esperando señal...</span>
             </div>
 
             <button id="btnEnviar" class="btn-locked" disabled onclick="procesarAsistencia()">
@@ -105,26 +105,22 @@
     </div>
 
 <script>
-    // --- CONFIGURACIÓN ---
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
-    // ⚠️ AJUSTE SOLICITADO: 50 METROS
-    const RADIO_METROS = 50; 
+    // --- CONFIGURACIÓN PARA DATOS MÓVILES ---
+    const RADIO_METROS = 60; // 60m: Equilibrio ideal para datos
     const TIEMPO_ESPERA = 60; 
 
-    // VARIABLES
     let latProfe = null, lonProfe = null, gpsValido = false;
     const btn = document.getElementById('btnEnviar');
     const msg = document.getElementById('gpsMsg');
     const box = document.getElementById('gpsBox');
 
-    // --- INICIO ---
     (function init() {
         const params = new URLSearchParams(window.location.search);
         latProfe = parseFloat(params.get('lat'));
         lonProfe = parseFloat(params.get('lon'));
 
-        // Cargar script QR en segundo plano
         const scriptQR = document.createElement('script');
         scriptQR.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
         scriptQR.async = true;
@@ -139,7 +135,7 @@
             msg.innerText = "⚠️ ERROR: Escanea el QR del maestro.";
             box.style.borderLeftColor = "#ef4444";
         } else {
-            msg.innerText = "Buscando satélites...";
+            msg.innerText = "Triangulando ubicación...";
             checkInputs(); 
         }
     })();
@@ -164,7 +160,6 @@
         
         if(nombre && fecha) {
             setTimeout(() => generarTicket(nombre, grupo, fecha, materia || "Clase"), 1000);
-            
             document.getElementById("avisoBloqueo").style.display = "block";
             document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
             document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
@@ -184,14 +179,13 @@
 
     function iniciarGPS() {
         if("geolocation" in navigator) {
-            // AUMENTAMOS EL TIEMPO DE ESPERA A 20 SEGUNDOS (Para Datos Móviles)
-            const opcionesAlta = { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 };
+            // ESTRATEGIA PARA DATOS MÓVILES:
+            // 1. enableHighAccuracy: true (Necesario para precisión)
+            // 2. timeout: 30000 (DAR TIEMPO a la antena para conectar)
+            // 3. maximumAge: 0 (No usar ubicación vieja de la casa)
+            const opciones = { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 };
             
-            navigator.geolocation.watchPosition(exitoGPS, (err) => {
-                console.log("Fallo Alta Precisión, intentando modo compatible...");
-                // Si falla, reintenta en modo baja precisión
-                navigator.geolocation.watchPosition(exitoGPS, errorGPS, { enableHighAccuracy: false, timeout: 20000 });
-            }, opcionesAlta);
+            navigator.geolocation.watchPosition(exitoGPS, errorGPS, opciones);
         } else {
             msg.innerText = "Tu celular no tiene GPS.";
         }
@@ -199,6 +193,7 @@
 
     function exitoGPS(pos) {
         const dist = getDistancia(latProfe, lonProfe, pos.coords.latitude, pos.coords.longitude);
+        
         if(dist <= RADIO_METROS) {
             gpsValido = true;
             box.style.borderLeftColor = "#00274c";
@@ -210,16 +205,18 @@
             btn.innerHTML = "☁️ GUARDAR ASISTENCIA";
         } else {
             gpsValido = false;
-            msg.innerText = `Lejos del aula (${dist.toFixed(0)}m)`;
+            // Mensaje más amigable
+            msg.innerText = `Acércate más (Estás a ${dist.toFixed(0)}m)`;
             btn.disabled = true;
             btn.className = "btn-locked";
-            btn.innerHTML = "🔒 ACÉRCATE MÁS";
+            btn.innerHTML = "🔒 ESTÁS LEJOS";
         }
     }
 
     function errorGPS(err) {
-        if(err.code === 1) msg.innerText = "🚫 Falta permiso. Toca el candado 🔒 arriba.";
-        else if(err.code === 2) msg.innerText = "📡 Sin señal. Abre Google Maps.";
+        if(err.code === 1) msg.innerText = "🚫 Falta permiso. Toca el candado 🔒";
+        else if(err.code === 2) msg.innerText = "📡 Sin señal. Abre Maps.";
+        else if(err.code === 3) msg.innerText = "⏳ Tiempo agotado. Recarga.";
         else msg.innerText = "⚠️ Error GPS. Reintenta.";
         box.style.borderLeftColor = "#ef4444";
     }
@@ -294,4 +291,3 @@
 
 </body>
 </html>
-
