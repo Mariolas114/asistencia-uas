@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asistencia Dr. Mario Cota</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f9; text-align: center; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         
@@ -36,7 +37,7 @@
         #pantallaTicket { display: none; width: 100%; max-width: 380px; }
         .ticket { background: #fff; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; overflow: hidden; }
         .ticket-header { background: #00274c; color: #D4AF37; padding: 15px; text-transform: uppercase; font-weight: bold; font-size: 0.8rem; letter-spacing: 0.5px; }
-        .qr-area { margin: 15px auto; display: flex; justify-content: center; align-items: center; padding: 10px; min-height: 160px; }
+        .qr-area { margin: 15px auto; display: flex; justify-content: center; align-items: center; padding: 10px; min-height: 160px; background: white; }
         .ticket-info { padding: 20px; text-align: left; border-top: 2px dashed #ddd; background: #fafafa; }
         .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .bloqueado-msg { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; font-size: 0.8rem; margin-top: 10px; display:none; border: 1px solid #fca5a5; }
@@ -75,7 +76,7 @@
                 🔒 COMPLETAR DATOS
             </button>
             
-            <button id="btnRetry" class="btn-retry" style="display:none;" onclick="iniciarGPS()">
+            <button id="btnRetry" class="btn-retry" style="display:none;" onclick="location.reload()">
                 🔄 REINTENTAR UBICACIÓN
             </button>
         </div>
@@ -89,7 +90,7 @@
     <div id="pantallaTicket">
         <div class="ticket">
             <div class="ticket-header" id="ticketMateriaHeader">ASISTENCIA</div>
-            <div class="qr-area" id="qrTicket">Generando QR...</div>
+            <div class="qr-area" id="qrTicket"></div>
             
             <div id="ticketTitulo" style="color:#15803d; font-weight:bold; margin-bottom:5px;">✅ Asistencia Guardada</div>
             <div style="font-size:0.8rem; color:#666; margin-bottom:15px;">Datos sincronizados</div>
@@ -112,8 +113,8 @@
 <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxfgqo2akfpCvDjERD3XNuuoPopg4Vcqo7gBNffRI3iSmyGppCYzVf1ybEHYHor-KXT/exec";
     
-    // ⚠️ 75 METROS: Un poco más amplio porque los datos móviles son menos precisos
-    const RADIO_METROS = 75; 
+    // ⚠️ 50 METROS: Rango estricto solicitado
+    const RADIO_METROS = 50; 
     const TIEMPO_ESPERA = 60; 
 
     let latProfe = null, lonProfe = null, gpsValido = false;
@@ -122,15 +123,10 @@
     const box = document.getElementById('gpsBox');
     const btnRetry = document.getElementById('btnRetry');
 
-    (function init() {
+    window.onload = function() {
         const params = new URLSearchParams(window.location.search);
         latProfe = parseFloat(params.get('lat'));
         lonProfe = parseFloat(params.get('lon'));
-
-        const scriptQR = document.createElement('script');
-        scriptQR.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-        scriptQR.async = true;
-        document.body.appendChild(scriptQR);
 
         verificarBloqueo();
 
@@ -141,10 +137,10 @@
             msg.innerText = "⚠️ ERROR: Escanea el QR del maestro.";
             box.style.borderLeftColor = "#ef4444";
         } else {
-            msg.innerText = "Conectando antenas...";
+            msg.innerText = "Afinando ubicación...";
             checkInputs(); 
         }
-    })();
+    };
 
     function verificarBloqueo() {
         const ultimoRegistro = localStorage.getItem("bio_ultimo_tiempo");
@@ -165,7 +161,7 @@
         const materia = localStorage.getItem("bio_materia_nombre");
         
         if(nombre && fecha) {
-            setTimeout(() => generarTicket(nombre, grupo, fecha, materia || "Clase"), 1000);
+            generarTicket(nombre, grupo, fecha, materia || "Clase");
             document.getElementById("avisoBloqueo").style.display = "block";
             document.getElementById("minutosRestantes").innerText = Math.ceil(TIEMPO_ESPERA - diferencia);
             document.getElementById("ticketTitulo").innerText = "⚠️ Registro Anterior";
@@ -185,16 +181,15 @@
 
     function iniciarGPS() {
         btnRetry.style.display = "none";
-        msg.innerText = "📍 Buscando señal...";
+        msg.innerText = "📍 Sincronizando (Espera)...";
         msg.style.color = "#d97706";
         
         if("geolocation" in navigator) {
-            // EL SECRETO: enableHighAccuracy: FALSE
-            // Esto le dice al celular: "No busques satélites, usa las antenas de la calle".
-            // Es mucho más rápido y funciona bajo techo con datos.
-            const opciones = { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 };
-            
-            navigator.geolocation.getCurrentPosition(exitoGPS, errorGPS, opciones);
+            // Usamos watchPosition para permitir que los Datos Móviles se "estabilicen"
+            // HighAccuracy: true para intentar llegar a los 50m
+            // Timeout largo (25s) para dar tiempo al celular de procesar la señal
+            const opciones = { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 };
+            navigator.geolocation.watchPosition(exitoGPS, errorGPS, opciones);
         } else {
             msg.innerText = "Tu celular no tiene GPS.";
         }
@@ -207,7 +202,7 @@
             gpsValido = true;
             box.style.borderLeftColor = "#00274c";
             box.style.background = "#eef2ff";
-            msg.innerText = "✅ Ubicación Validada (A " + dist.toFixed(0) + "m)";
+            msg.innerText = "✅ Ubicación Validada";
             msg.style.color = "#00274c";
             btn.disabled = false;
             btn.className = "btn-active";
@@ -219,18 +214,19 @@
             btn.disabled = true;
             btn.className = "btn-locked";
             btn.innerHTML = "🔒 ACÉRCATE MÁS";
-            btnRetry.style.display = "block"; // Mostrar botón reintentar
+            // Si está lejos, mostramos el botón por si quiere reintentar forzadamente
+            if(dist > RADIO_METROS + 20) btnRetry.style.display = "block";
         }
     }
 
     function errorGPS(err) {
         if(err.code === 1) msg.innerText = "🚫 Falta permiso. Toca el candado 🔒";
-        else if(err.code === 2) msg.innerText = "📡 Sin señal. Muévete un poco.";
+        else if(err.code === 2) msg.innerText = "📡 Sin señal GPS.";
         else if(err.code === 3) msg.innerText = "⏳ Lento. Presiona Reintentar.";
         else msg.innerText = "⚠️ Error GPS.";
         
         box.style.borderLeftColor = "#ef4444";
-        btnRetry.style.display = "block"; // Mostrar botón reintentar
+        btnRetry.style.display = "block"; 
     }
 
     function getDistancia(lat1, lon1, lat2, lon2) {
@@ -283,7 +279,7 @@
         const qrContainer = document.getElementById("qrTicket");
         qrContainer.innerHTML = "";
         
-        const intentarQR = setInterval(() => {
+        setTimeout(() => {
             if (typeof QRCode !== 'undefined') {
                 new QRCode(qrContainer, {
                     text: `UAS|${materiaNombre}|${nombre}|${fechaHora}`,
@@ -291,9 +287,8 @@
                     colorDark : "#00274c", colorLight : "#ffffff",
                     correctLevel : QRCode.CorrectLevel.H
                 });
-                clearInterval(intentarQR);
             } else {
-                qrContainer.innerText = "Cargando QR...";
+                qrContainer.innerText = "Error cargando QR. Recarga.";
             }
         }, 500);
     }
